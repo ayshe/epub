@@ -161,11 +161,11 @@ rm guide.tmp
 rm manifest.tmp
 
 for i in `find epub/OEBPS -maxdepth 1 -type f`; do
-	sed -i '' 's/{{ID}}/'"$ID"'/' $i
-	sed -i '' 's/{{TITLE}}/'"$TITLE"'/' $i
-	sed -i '' 's/{{AUTHOR}}/'"$AUTHOR"'/' $i
-	sed -i '' 's/{{DATE}}/'"$DATE"'/' $i
-	sed -i '' 's/{{PUBLISHER}}}}/'"$PUBLISHER"'/' $i
+	sed -i '' 's/{{ID}}/'"$ID"'/g' $i
+	sed -i '' 's/{{TITLE}}/'"$TITLE"'/g' $i
+	sed -i '' 's/{{AUTHOR}}/'"$AUTHOR"'/g' $i
+	sed -i '' 's/{{DATE}}/'"$DATE"'/g' $i
+	sed -i '' 's/{{PUBLISHER}}}}/'"$PUBLISHER"'/g' $i
 done
 
 if [ -f "$TITLE.epub" ]; then
