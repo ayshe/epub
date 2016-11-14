@@ -165,6 +165,7 @@ for i in `find epub/OEBPS -maxdepth 1 -type f`; do
 	sed -i '' 's/{{TITLE}}/'"$TITLE"'/' $i
 	sed -i '' 's/{{AUTHOR}}/'"$AUTHOR"'/' $i
 	sed -i '' 's/{{DATE}}/'"$DATE"'/' $i
+	sed -i '' 's/{{PUBLISHER}}}}/'"$PUBLISHER"'/' $i
 done
 
 if [ -f "$TITLE.epub" ]; then
