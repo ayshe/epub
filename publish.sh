@@ -69,6 +69,7 @@ CHAPTER=1;
 REF=4;
 cd chapters;
 WORDCOUNT=`cat *.txt | sed -e 's/---//g' | wc | awk '{ print $2 }'`
+cat *.txt | sed -E 's/#//g' | sed -E 's/---//g' | sed -E 's/\///g' > ../wc.txt
 for i in `ls *.txt`; do
     SECTION=`cat $i | grep ^\#[^#] | sed 's/\#//g'`
     PAGETITLE=`cat $i | grep ^\#\# | sed 's/\#//g'`
@@ -85,9 +86,9 @@ for i in `ls *.txt`; do
     fi
 
 	echo \<div id=\"id$CHAPTER\"\>\</div\> >> tmp
-	echo \<div class=\"index\"\>\<a href=\"$CHAPTER.xhtml\"\>Chapter $CHAPTER: $PAGETITLE\</a\>\</div\> >> tmp
+	echo \<div class=\"index\"\>\<a href=\"toc.xhtml\"\>Chapter $CHAPTER: $PAGETITLE\</a\>\</div\> >> tmp
 
-    cat $i | sed -E 's/^\#.+\#$//g' | sed -E 's/---/\<p class="break"\>\*\*\*\<\/p\>/g' | sed -E 's/(^[^\<]+$)/\<p\>\1\<\/p\>\ /g' | sed -E 's/\/([^\/]*)\//\<em\>\1\<\/em\> /g' >> tmp
+    cat $i | sed -E 's/^\#.+\#$//g' | sed -E 's/---/\<p class="break"\>\<\/p\>/g' | sed -E 's/(^[^\<]+$)/\<p\>\1\<\/p\>\ /g' | sed -E 's/\/([^\/]*)\//\<em\>\1\<\/em\> /g' >> tmp
 
 	echo \</body\>\</html\> >> tmp
 

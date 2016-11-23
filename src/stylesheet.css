@@ -7,8 +7,16 @@
     margin-bottom: 20px;
 	font-weight: bold;
 }
+.index {
+    font-size: 1.1em;
+    margin-bottom: 15px;
+	font-weight: bold;
+}
 .break {
-    align: center;
+    background: url(images/break.png);
+    height: 56px;
+    width: 120px;
+    margin: 0 auto;
 }
 /* Style Sheet for ePub Books */
 
