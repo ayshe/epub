@@ -25,7 +25,7 @@ echo \</body\> >> epub/OEBPS/foreword.xhtml
 echo \</html\> >> epub/OEBPS/foreword.xhtml
 echo foreword.xhtml
 cp src/afterword.xhtml  epub/OEBPS/afterword.xhtml
-cat includes/foreword.xhtml >> epub/OEBPS/afterword.xhtml
+cat includes/afterword.xhtml >> epub/OEBPS/afterword.xhtml
 echo \</body\> >> epub/OEBPS/afterword.xhtml
 echo \</html\> >> epub/OEBPS/afterword.xhtml
 echo afterword.xhtml
@@ -39,11 +39,11 @@ echo stylesheet.css
 echo \<manifest\> > manifest.tmp
 echo \<spine toc=\"ncx\"\> > content.opf
 echo \<itemref idref=\"titlepage\"/\> >> content.opf
-echo \<itemref idref=\"toc\"/\> >> content.opf
 echo \<itemref idref=\"foreword\"/\> >> content.opf
+echo \<itemref idref=\"toc\"/\> >> content.opf
 echo \<guide\> > guide.tmp
-echo \<reference href=\"toc.xhtml\" type=\"toc\" title=\"Table of Contents\"/\> >> guide.tmp
 echo \<reference href=\"foreword.xhtml\" type=\"foreword\" title=\"Foreword\"/\> >> guide.tmp
+echo \<reference href=\"toc.xhtml\" type=\"toc\" title=\"Table of Contents\"/\> >> guide.tmp
 echo \<reference href=\"titlepage.xhtml\" type=\"cover\" title=\"Cover\"/\> >> guide.tmp
 
 echo \<navPoint class=\"chapter\" id=\"titlepage\" playOrder=\"1\"\> >> epub/OEBPS/toc.ncx
