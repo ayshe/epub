@@ -1,0 +1,5 @@
+	<guide>
+		<reference type="toc" title="Table of Contents" href="OEBPS/Toc.html" />
+		<reference type="cover" title="Cover" href="OEBPS/cover.html" />
+	</guide>
+</package>

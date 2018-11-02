@@ -1,4 +1,0 @@
-#My book section title#
-##My chapter 1 title##
-
-Lorem ipsum dolor sit amet

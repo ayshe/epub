@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="PrimaryID">
+
+
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+		<dc:title>{{TITLE}}</dc:title>
+<dc:language>en</dc:language>
+<dc:identifier id="PrimaryID" opf:scheme="URI">{{ID}}</dc:identifier>
+<dc:creator opf:role="aut" opf:file-as="{{AUTHOR_FILE_AS}}">{{AUTHOR}}</dc:creator>
+<dc:rights>Copyright &#169; {{PUBLISH_YEAR}}  by {{AUTHOR}}</dc:rights>
+<dc:publisher>{{PUBLISHER}}</dc:publisher>
+<dc:date opf:event="publication">{{DATE}}</dc:date>
+<meta name="cover" content="cover" />
+	</metadata>

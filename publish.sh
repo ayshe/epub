@@ -1,6 +1,6 @@
 #!/bin/sh
 
-source includes/settings
+source src/settings
 
 if [ -d "epub" ]; then
 	rm -rf epub;
@@ -10,171 +10,182 @@ mkdir epub;
 
 mkdir epub/META-INF
 mkdir epub/OEBPS
-mkdir epub/OEBPS/images
+mkdir epub/OEBPS/assets
 
-cp src/container.xml epub/META-INF/container.xml
-cp src/mimetype epub/mimetype
+cp includes/mimetype epub/mimetype
+cp includes/stylesheet.css epub/OEBPS
+cp includes/container.xml epub/META-INF
+cp includes/com.apple.ibooks.display-options.xml epub/META-INF
+cp includes/*.ttf epub/OEBPS/assets
 
-cp src/titlepage.xhtml epub/OEBPS/titlepage.xhtml
-echo titlepage.xhtml
-cp src/toc.xhtml        epub/OEBPS/toc.xhtml
-echo toc.xhtml
-cp src/foreword.xhtml   epub/OEBPS/foreword.xhtml
-cat includes/foreword.xhtml >> epub/OEBPS/foreword.xhtml
-echo \</body\> >> epub/OEBPS/foreword.xhtml
-echo \</html\> >> epub/OEBPS/foreword.xhtml
-echo foreword.xhtml
-cp src/afterword.xhtml  epub/OEBPS/afterword.xhtml
-cat includes/afterword.xhtml >> epub/OEBPS/afterword.xhtml
-echo \</body\> >> epub/OEBPS/afterword.xhtml
-echo \</html\> >> epub/OEBPS/afterword.xhtml
-echo afterword.xhtml
-cp src/toc.ncx         epub/OEBPS/toc.ncx
-echo toc.ncx
-cp src/content.opf     epub/OEBPS/content.opf
-echo content.opf
-cp src/stylesheet.css  epub/OEBPS/stylesheet.css
-echo stylesheet.css
+cat includes/book_head.opf > book.opf.tmp
+cat includes/toc_head.ncx > toc.ncx.tmp
+echo "<manifest>" > book.opf.manifest.tmp
+echo "<spine toc='ncx'>" > book.opf.spine.tmp
 
-echo \<manifest\> > manifest.tmp
-echo \<spine toc=\"ncx\"\> > content.opf
-echo \<itemref idref=\"titlepage\"/\> >> content.opf
-echo \<itemref idref=\"foreword\"/\> >> content.opf
-echo \<itemref idref=\"toc\"/\> >> content.opf
-echo \<guide\> > guide.tmp
-echo \<reference href=\"foreword.xhtml\" type=\"foreword\" title=\"Foreword\"/\> >> guide.tmp
-echo \<reference href=\"toc.xhtml\" type=\"toc\" title=\"Table of Contents\"/\> >> guide.tmp
-echo \<reference href=\"titlepage.xhtml\" type=\"cover\" title=\"Cover\"/\> >> guide.tmp
+PLAY_ORDER=1
 
-echo \<navPoint class=\"chapter\" id=\"titlepage\" playOrder=\"1\"\> >> epub/OEBPS/toc.ncx
-echo \<navLabel\> >> epub/OEBPS/toc.ncx
-echo \<text\>Title\</text\> >> epub/OEBPS/toc.ncx
-echo \</navLabel\> >> epub/OEBPS/toc.ncx
-echo \<content src=\"titlepage.xhtml\"/\> >> epub/OEBPS/toc.ncx
-echo \</navPoint\> >> epub/OEBPS/toc.ncx
-echo \<navPoint class=\"chapter\" id=\"foreword\" playOrder=\"2\"\> >> epub/OEBPS/toc.ncx
-echo \<navLabel\> >> epub/OEBPS/toc.ncx
-echo \<text\>Foreword\</text\> >> epub/OEBPS/toc.ncx
-echo \</navLabel\> >> epub/OEBPS/toc.ncx
-echo \<content src=\"foreword.xhtml\"/\> >> epub/OEBPS/toc.ncx
-echo \</navPoint\> >> epub/OEBPS/toc.ncx
-echo \<navPoint class=\"chapter\" id=\"toc\" playOrder=\"3\"\> >> epub/OEBPS/toc.ncx
-echo \<navLabel\> >> epub/OEBPS/toc.ncx
-echo \<text\>Table of Contents\</text\> >> epub/OEBPS/toc.ncx
-echo \</navLabel\> >> epub/OEBPS/toc.ncx
-echo \<content src=\"toc.xhtml\"/\> >> epub/OEBPS/toc.ncx
-echo \</navPoint\> >> epub/OEBPS/toc.ncx
+function parse {
+    INPUT=$1
+    DESTINATION=$2
+    FRAGMENT_TITLE=$3
+    FRAGMENT_ID=$4
 
-CHAPTER=1;
-REF=4;
-cd chapters;
-WORDCOUNT=`cat *.txt | sed -e 's/---//g' | wc | awk '{ print $2 }'`
-cat *.txt | sed -E 's/#//g' | sed -E 's/---//g' | sed -E 's/\///g' > ../wc.txt
-for i in `ls *.txt`; do
-    SECTION=`cat $i | grep ^\#[^#] | sed 's/\#//g'`
-    PAGETITLE=`cat $i | grep ^\#\# | sed 's/\#//g'`
-    DEST=`echo $i | sed 's/txt/xhtml/'`;
-    cat ../src/chapter.xhtml > tmp;
+    cat includes/content_head.html > tmp
+    cat $INPUT >> tmp
+    sed -i '' -E 's/\[(.*)\]/<strong>\1<br \/><br \/><\/strong>/g' tmp
+    sed -i '' -E 's/^\#\#\#([ a-zA-Z]+)\#\#\#/<h3\>\1\<\/h3\>/g' tmp
+    sed -i '' -E 's/^\#.+\#[^ a-zA-Z]*$//g' tmp
+    sed -i '' -E 's/^\// \//g' tmp
+    sed -i '' -E 's/(^[^\<].*)([\w,\. ]*)\/([^\<\>\/]+)\/([\w,\. ]*)/\1\2\<em\>\3\<\/em\>\4/g' tmp
+    sed -i '' -E 's/---/\<div class="wp-nocaption alignnone size-full wp-image-20"\>\<img class="alignnone size-full wp-image-20" src="assets\/break.png" alt="break" width="120" height="56"\/\>\<\/div\>/' tmp
+    sed -i '' -E 's/(^[^\<].+$)/\<p class="para"\>\1\<\/p\>\ /' tmp
+    cat includes/content_foot.html >> tmp
+    sed -i '' -E 's/{{FRAGMENT_TITLE}}/'"$FRAGMENT_TITLE"'/g' tmp
+    mv tmp epub/OEBPS/$DESTINATION
 
-    if [ -z "$SECTION" ]; then
+    reference $DESTINATION "$FRAGMENT_TITLE" $FRAGMENT_ID
+}
+function reference {
+    DESTINATION=$1
+    FRAGMENT_TITLE=$2
+    FRAGMENT_ID=$3
+
+    echo "<item id='$FRAGMENT_ID' href='OEBPS/$DESTINATION' media-type='application/xhtml+xml' />" >> book.opf.manifest.tmp
+
+    echo "<itemref idref='$FRAGMENT_ID' linear='yes' />" >> book.opf.spine.tmp
+
+    echo "<navPoint id='$FRAGMENT_ID' playOrder='$PLAY_ORDER'>" >> toc.ncx.tmp
+    echo "<navLabel><text>$FRAGMENT_TITLE</text></navLabel>" >> toc.ncx.tmp
+    echo "<content src='OEBPS/$DESTINATION' />" >> toc.ncx.tmp
+    echo "</navPoint>" >> toc.ncx.tmp
+    let PLAY_ORDER=PLAY_ORDER+1
+}
+
+function set_fields {
+    SRC=$1
+    sed -i '' 's/{{ID}}/'"$ID"'/g' $SRC
+    sed -i '' 's/{{TITLE}}/'"$TITLE"'/g' $SRC
+    sed -i '' 's/{{AUTHOR}}/'"$AUTHOR"'/g' $SRC
+    sed -i '' 's/{{DATE}}/'"$DATE"'/g' $SRC
+    sed -i '' 's/{{PUBLISHER}}/'"$PUBLISHER"'/g' $SRC
+    sed -i '' 's/{{AUTHOR_FILE_AS}}/'"$AUTHOR_FILE_AS"'/g' $SRC
+    sed -i '' 's/{{PUBLISH_YEAR}}/'"$PUBLISH_YEAR"'/g' $SRC
+    sed -i '' 's/{{PUBLISH_CITY}}/'"$PUBLISH_CITY"'/g' $SRC
+}
+
+WORDCOUNT=`cat src/chapters/*.txt | sed -e 's/---//g' | wc | awk '{ print $2 }'`
+cat src/chapters/*.txt | sed -E 's/#//g' | sed -E 's/---//g' | sed -E 's/\///g' > wc.txt
+
+parse includes/cover.html cover.html Cover cover
+
+echo "<div id='title-page'><h1 class='title'>{{TITLE}}</h1><h2 class='subtitle'></h2><h3 class='author'>{{AUTHOR}}</h3><h4 class='author'></h4><h4 class='publisher'>{{PUBLISHER}}</h4><h5 class='publisher-city'>{{PUBLISH_CITY}}</h5></div>" > stage.tmp
+parse stage.tmp TitlePage.html "Title Page" TitlePage
+
+echo "<div id='copyright-page'><div class='ugc'><p>{{TITLE}} Copyright &#169; {{PUBLISH_YEAR}} by {{AUTHOR}}. </p><p>This book was written during <a href='http://nanowrimo.org/'>National Novel Writing Month 2018</a>.</p></div></div>" > stage.tmp
+parse stage.tmp Copyright.html "Copyright" Copyright
+
+cat includes/content_head.html > toc.html.tmp
+sed -i '' -E 's/{{FRAGMENT_TITLE}}/Table of Contents/g' toc.html.tmp
+echo "<div id='toc'><h1>Contents</h1><ul>" >> toc.html.tmp
+reference Toc.html "Table of Contents" Toc
+
+parse src/foreword.txt Foreword.html Foreword Foreword
+
+echo "<li class='front-matter'><a href='TitlePage.html'><span class='toc-chapter-title'> Title</span></a></li>" >> toc.html.tmp
+echo "<li class='front-matter'><a href='Copyright.html'><span class='toc-chapter-title'> Copyright</span></a></li>" >> toc.html.tmp
+echo "<li class='front-matter foreword'><a href='Foreword.html'><span class='toc-chapter-title'> Foreword</span></a></li>" >> toc.html.tmp
+
+CHAPTER=1
+SECTION=1
+for i in `ls src/chapters/*.txt`; do
+    SECTIONTITLE=`cat $i | grep ^\#[^#] | sed 's/\#//g'`
+    PAGETITLE=`cat $i | grep ^\#\#[^#] | sed 's/\#\#//g'`
+    DEST=`echo $i | sed -E 's/.*\/(.*)\.txt/\1.html/'`;
+
+    if [ -z "$SECTIONTITLE" ]; then
         echo Chapter $CHAPTER : $PAGETITLE;
+        echo "<li class='chapterstandard'><a href='Chapter$DEST'><span class='toc-chapter-title'> $CHAPTER. $PAGETITLE</span></a></li>" >> toc.html.tmp
     else
-        echo Section: $SECTION
+        echo Section: $SECTIONTITLE
         echo Chapter $CHAPTER : $PAGETITLE;
-    	echo \<h1\>$SECTION\</h1\> >> tmp
-    	echo \<div class=\"index\"\>$SECTION\</div\> >> ../epub/OEBPS/toc.xhtml
+        echo "<div class='part introduction ' id='Part$SECTION'><div class='part-title-wrap'><h3 class='part-number'>$SECTION</h3><h1 class='part-title'><a href='Toc.html'>$SECTIONTITLE</a></h1></div></div>" > stage.tmp
+        parse stage.tmp Part$SECTION.html "$SECTIONTITLE" Part$SECTION
+        echo "<li class='part'><a href='Part$SECTION.html'><span class='toc-chapter-title'>$SECTIONTITLE</span></a></li>" >> toc.html.tmp
+        echo "<li class='chapterstandard'><a href='Chapter$DEST'><span class='toc-chapter-title'> $CHAPTER. $PAGETITLE</span></a></li>" >> toc.html.tmp
+        let SECTION=SECTION+1
     fi
 
-	echo \<div id=\"id$CHAPTER\"\>\</div\> >> tmp
-	echo \<div class=\"index\"\>\<a href=\"toc.xhtml\"\>Chapter $CHAPTER: $PAGETITLE\</a\>\</div\> >> tmp
-
-    cat $i | sed -E 's/^\#.+\#$//g' | sed -E 's/---/\<p class="break"\>\<\/p\>/g' | sed -E 's/(^[^\<]+$)/\<p\>\1\<\/p\>\ /g' | sed -E 's/\/([^\/]*)\//\<em\>\1\<\/em\> /g' >> tmp
-
-	echo \</body\>\</html\> >> tmp
-
-	echo \<item href=\"$CHAPTER.xhtml\" id=\"id$REF\" media-type=\"application/xhtml+xml\"/\> >> ../manifest.tmp
-	echo \<itemref idref=\"id$REF\"/\> >> ../content.opf
-	echo \<navPoint class=\"chapter\" id=\"id$REF\" playOrder=\"$REF\"\> >> ../epub/OEBPS/toc.ncx
-	echo \<navLabel\> >> ../epub/OEBPS/toc.ncx
-	echo \<text\>Chapter $CHAPTER: $PAGETITLE\</text\> >> ../epub/OEBPS/toc.ncx
-	echo \</navLabel\> >> ../epub/OEBPS/toc.ncx
-	echo \<content src=\"$CHAPTER.xhtml\"/\> >> ../epub/OEBPS/toc.ncx
-	echo \</navPoint\> >> ../epub/OEBPS/toc.ncx
-	
-	echo \<div class=\"index\"\>\<a href=\"$CHAPTER.xhtml\"\>Chapter $CHAPTER: $PAGETITLE\</a\>\</div\> >> ../epub/OEBPS/toc.xhtml
-    mv tmp ../epub/OEBPS/$DEST;
+    echo "<div class='chapter standard' id='Chapter$CHAPTER'><div class='chapter-title-wrap'><h3 class='chapter-number'>$CHAPTER</h3><h2 class='chapter-title'><a href='Toc.html'>$PAGETITLE</a></h2></div><div class='ugc chapter-ugc'>" > stage.tmp
+    cat $i >> stage.tmp
+    echo >> stage.tmp
+    echo "</div></div>" >> stage.tmp
+    parse stage.tmp Chapter$DEST "$PAGETITLE" Chapter$CHAPTER
+    rm stage.tmp
     let CHAPTER=CHAPTER+1
-    let REF=CHAPTER+3
 done;
-cd ..;
 
-let LASTREF=REF
-cd includes;
-for i in `ls *.jpg`; do
-    echo $i;
-	echo \<item href=\"images/$i\" id=\"id$REF\" media-type=\"image/jpeg\"/\> >> ../manifest.tmp
-	cp $i ../epub/OEBPS/images/$i
+let REF=1
+for i in `ls src/*.jpg`; do
+    FILE=`echo $i | sed -E 's/.*\/(.*\.*)/\1/'`
+    echo $FILE;
+	echo \<item href=\"OEBPS/assets/$FILE\" id=\"id$REF\" media-type=\"image/jpeg\" properties=\"cover-image\"/\> >> book.opf.manifest.tmp
+	cp $i epub/OEBPS/assets
     let REF=REF+1
 done;
-for i in `ls *.png`; do
-    echo $i;
-	echo \<item href=\"images/$i\" id=\"id$REF\" media-type=\"image/png\"/\> >> ../manifest.tmp
-	cp $i ../epub/OEBPS/images/$i
+for i in `ls src/*.png`; do
+    FILE=`echo $i | sed -E 's/.*\/(.*\.*)/\1/'`
+    echo $FILE;
+	echo \<item href=\"OEBPS/assets/$FILE\" id=\"id$REF\" media-type=\"image/png\"/\> >> book.opf.manifest.tmp
+	cp $i epub/OEBPS/assets
     let REF=REF+1
 done;
-cd ..
 
-echo \<p class=\"spacer\"\>\</p\> >> epub/OEBPS/toc.xhtml
-echo \<div class=\"title\" id=\"afterword\"\>\<a href=\"afterword.xhtml\"\>Afterword\</a\>\</div\> >> epub/OEBPS/toc.xhtml
-echo \</body\> >> epub/OEBPS/toc.xhtml
-echo \</html\> >> epub/OEBPS/toc.xhtml
+parse src/afterword.txt Afterword.html Afterword Afterword
+echo "<li class='back-matter'><a href='Afterword.html'><span class='toc-chapter-title'> Afterword</span></a></li>" >> toc.html.tmp
 
-echo \<navPoint class=\"chapter\" id=\"afterword\" playOrder=\"$LASTREF\"\> >> epub/OEBPS/toc.ncx
-echo \<navLabel\> >> epub/OEBPS/toc.ncx
-echo \<text\>Afterword\</text\> >> epub/OEBPS/toc.ncx
-echo \</navLabel\> >> epub/OEBPS/toc.ncx
-echo \<content src=\"afterword.xhtml\"/\> >> epub/OEBPS/toc.ncx
-echo \</navPoint\> >> epub/OEBPS/toc.ncx
-echo \</navMap\> >> epub/OEBPS/toc.ncx
-echo \</ncx\> >> epub/OEBPS/toc.ncx
+echo "</ul></div>" >> toc.html.tmp
+cat includes/content_foot.html >> toc.html.tmp
+mv toc.html.tmp epub/OEBPS/Toc.html
 
-echo \<reference href=\"afterword.xhtml\" type=\"afterword\" title=\"Afterword\"/\> >> guide.tmp
-echo \</guide\> >> guide.tmp
+echo "<item id='media-Quantico-Bold' href='OEBPS/assets/Quantico-Bold.ttf' media-type='application/x-font-ttf' />" >> book.opf.manifest.tmp
+echo "<item id='media-Quantico-BoldItalic' href='OEBPS/assets/Quantico-BoldItalic.ttf' media-type='application/x-font-ttf' />" >> book.opf.manifest.tmp
+echo "<item id='media-Quantico-Italic' href='OEBPS/assets/Quantico-Italic.ttf' media-type='application/x-font-ttf' />" >> book.opf.manifest.tmp
+echo "<item id='media-Quantico-Regular' href='OEBPS/assets/Quantico-Regular.ttf' media-type='application/x-font-ttf' />" >> book.opf.manifest.tmp
+echo "<item id='ncx' href='toc.ncx' media-type='application/x-dtbncx+xml' />" >> book.opf.manifest.tmp
+echo "<item id='stylesheet' href='OEBPS/stylesheet.css'  media-type='text/css' />" >> book.opf.manifest.tmp
 
-echo \<itemref idref=\"afterword\"/\> >> content.opf
-echo \</spine\> >> content.opf
 
-echo \<item href=\"stylesheet.css\" id=\"css\" media-type=\"text/css\"/\> >> manifest.tmp
-echo \<item href=\"titlepage.xhtml\" id=\"titlepage\" media-type=\"application/xhtml+xml\"/\> >> manifest.tmp
-echo \<item href=\"foreword.xhtml\" id=\"foreword\" media-type=\"application/xhtml+xml\"/\> >> manifest.tmp
-echo \<item href=\"afterword.xhtml\" id=\"afterword\" media-type=\"application/xhtml+xml\"/\> >> manifest.tmp
-echo \<item href=\"toc.xhtml\" id=\"toc\" media-type=\"application/xhtml+xml\"/\> >> manifest.tmp
-echo \<item href=\"toc.ncx\" id=\"ncx\" media-type=\"application/x-dtbncx+xml\" /\> >> manifest.tmp
-echo \</manifest\> >> manifest.tmp
+echo "</manifest>" >> book.opf.manifest.tmp
+echo "</spine>" >> book.opf.spine.tmp
 
-cat manifest.tmp >> epub/OEBPS/content.opf
-cat content.opf >> epub/OEBPS/content.opf
-cat guide.tmp >> epub/OEBPS/content.opf
-echo \</package\> >> epub/OEBPS/content.opf
+cat book.opf.manifest.tmp >> book.opf.tmp
+rm book.opf.manifest.tmp
 
-rm content.opf
-rm guide.tmp
-rm manifest.tmp
+cat book.opf.spine.tmp >> book.opf.tmp
+rm book.opf.spine.tmp
 
 for i in `find epub/OEBPS -maxdepth 1 -type f`; do
-	sed -i '' 's/{{ID}}/'"$ID"'/g' $i
-	sed -i '' 's/{{TITLE}}/'"$TITLE"'/g' $i
-	sed -i '' 's/{{AUTHOR}}/'"$AUTHOR"'/g' $i
-	sed -i '' 's/{{DATE}}/'"$DATE"'/g' $i
-	sed -i '' 's/{{PUBLISHER}}}}/'"$PUBLISHER"'/g' $i
+    set_fields $i
 done
 
-if [ -f "$TITLE.epub" ]; then
-	rm -f $TITLE.epub;
+cat includes/book_foot.opf >> book.opf.tmp
+cat includes/toc_foot.ncx >> toc.ncx.tmp
+
+set_fields book.opf.tmp
+set_fields toc.ncx.tmp
+
+mv book.opf.tmp epub/book.opf
+mv toc.ncx.tmp epub/toc.ncx
+
+if [ -f "$PACKAGE.epub" ]; then
+	rm -f $PACKAGE.epub;
 fi;
 
 cd epub
 zip -X -0 ../$PACKAGE.epub mimetype
+zip -X -u ../$PACKAGE.epub toc.ncx
+zip -X -u ../$PACKAGE.epub book.opf
 zip -X -u -r ../$PACKAGE.epub OEBPS
 zip -X -u -r ../$PACKAGE.epub META-INF
 cd ..
